@@ -6,7 +6,7 @@ def get_file_content(
     full_path = os.path.join(working_directory, file_path)
     abs_full_path = os.path.abspath(full_path)
     abs_working_path = os.path.abspath(working_directory)
-    if not abs_full_path.startswith(abs_working_path):
+    if not abs_full_path.startswith(abs_working_path + os.sep):
         return f'Error: Cannot read "{file_path}" as it is outside the permitted working directory'
     elif not os.path.isfile(abs_full_path):
         return f'Error: File not found or is not a regular file: "{file_path}"'
