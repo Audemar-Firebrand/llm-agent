@@ -52,28 +52,32 @@ def main():
     types.Content(role="user", parts=[types.Part(text=user_prompt)]),
 ]
     print("Hello from llm-agent!")
+    final_response = generate_content(client, messages, args.verbose)
+    if final_response:
+        print(final_response)
+
+def generate_content(client, messages, verbose):
     response = client.models.generate_content(
         model="gemini-2.0-flash-001",
         contents=messages,
         config=types.GenerateContentConfig(tools=[available_functions], system_instruction=system_prompt),
 )
-    
+    if verbose:
+        print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
+        print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
+
+
     if response.function_calls:
-        function_call_result = call_function(response.function_calls[0], verbose=args.verbose)
+        function_call_result = call_function(response.function_calls[0], verbose)
         result = function_call_result.parts[0].function_response.response
         if not result:
             raise Exception("Error: failed to call function")
-        if args.verbose:
+        if verbose:
             print(f" -> {result}")
         else:
             print(result)
     else:
-        print(response.text)
-    
-    if args.verbose:
-        print(f"User prompt: {user_prompt}")
-        print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
-        print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
+        return response.text
 
 if __name__ == "__main__":
     main()
