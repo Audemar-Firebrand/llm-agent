@@ -51,33 +51,49 @@ def main():
     messages = [
     types.Content(role="user", parts=[types.Part(text=user_prompt)]),
 ]
-    print("Hello from llm-agent!")
+    
     final_response = generate_content(client, messages, args.verbose)
     if final_response:
+        print("Final response:")
         print(final_response)
 
 def generate_content(client, messages, verbose):
-    response = client.models.generate_content(
-        model="gemini-2.0-flash-001",
-        contents=messages,
-        config=types.GenerateContentConfig(tools=[available_functions], system_instruction=system_prompt),
-)
-    if verbose:
-        print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
-        print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
+    try:
+        counter = 0
+        while counter < 20:
+            response = client.models.generate_content(
+                model="gemini-2.0-flash-001",
+                contents=messages,
+                config=types.GenerateContentConfig(tools=[available_functions], system_instruction=system_prompt),
+            )
+            counter += 1
 
+            if verbose and response.usage_metadata:
+                print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
+                print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
 
-    if response.function_calls:
-        function_call_result = call_function(response.function_calls[0], verbose)
-        result = function_call_result.parts[0].function_response.response
-        if not result:
-            raise Exception("Error: failed to call function")
-        if verbose:
-            print(f" -> {result}")
-        else:
-            print(result)
-    else:
-        return response.text
+            for candidate in response.candidates or []:
+                messages.append(candidate.content)
+
+            if response.function_calls:
+                for function_call in response.function_calls:
+                    function_call_result = call_function(function_call, verbose)
+                    if not function_call_result.parts[0].function_response.response:
+                        raise Exception("Error: failed to call function")
+                    messages.append(
+                            types.Content(
+                                role="user",
+                                parts=function_call_result.parts
+                        )
+                    )
+            else:
+                if response.text:
+                    return response.text
+        return None
+    except Exception as e:
+        print(f'Error: "{e}"')
+        return None
+
 
 if __name__ == "__main__":
     main()
