@@ -12,7 +12,7 @@ def main():
         print('Example: python main.py "3 + 5"')
         return
 
-    expression = " ".join(sys.argv[1:])
+    expression = sys.argv[1]
     try:
         result = calculator.evaluate(expression)
         to_print = render(expression, result)
